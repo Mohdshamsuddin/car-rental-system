@@ -1,0 +1,436 @@
+
+generator client {
+  provider = "prisma-client-js"
+  // output   = "../generated/prisma-client"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DB_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+  HOSTER
+  DRIVER
+  PROVIDER
+  CUSTOMER
+  MECHANIC
+}
+
+enum RegistrationStatus {
+  PENDING
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  email          String?  @unique
+  mobile         String   @unique
+  password       String
+  role           Role     @default(USER)
+  is_active      Boolean  @default(true)
+  emailVerified  Boolean  @default(false)
+  mobileVerified Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  customerDocuments CustomerDocument[]
+  loginHistories    LoginHistory[]
+}
+
+model Customer {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  name            String
+  mobile          String
+  email           String
+  alternateMobile String?
+  address         String?
+  stateId         String   @db.ObjectId
+  cityId          String   @db.ObjectId
+  pincode         String
+  aadharNumber    String
+  aadharFrontPic  String?
+  aadharBackPic   String?
+  panNumber       String
+  panPic          String?
+  profilePic      String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  state           State   @relation(fields: [stateId], references: [id])
+  city            City    @relation(fields: [cityId], references: [id])
+  bookings        VehicleBooking[]
+  bills           VehicleBookingBill[]
+  logs            VehicleBookingLog[]
+}
+
+model Provider {
+  id                  String             @id @default(auto()) @map("_id") @db.ObjectId
+  registrationStatus  RegistrationStatus @default(PENDING)
+  name                String
+  email               String             @unique
+  mobile              String             @unique
+  alternateMobile     String?
+  address             String
+  cityId              String             @db.ObjectId
+  stateId             String             @db.ObjectId
+  zipcode             String
+  mobileOTP           String?            @unique
+  emailOTP            String?            @unique
+  is_active           Boolean            @default(true)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  city                City               @relation(fields: [cityId], references: [id])
+  state               State              @relation(fields: [stateId], references: [id])
+  providerDocuments   ProviderDocument[]
+  vehicles            Vehicle[]          @relation("ProviderVehicles")
+}
+
+model Document {
+  id            String            @id @default(auto()) @map("_id") @db.ObjectId
+  name          String            @unique
+  description   String?
+  forProvider   Boolean           @default(false)
+  forCustomer   Boolean           @default(false)
+  active        Boolean           @default(true)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  providerDocuments ProviderDocument[]
+  customerDocuments CustomerDocument[]
+}
+
+model ProviderDocument {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  providerId  String   @db.ObjectId
+  documentId  String   @db.ObjectId
+  fileUrl     String
+  isVerified  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  provider    Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+}
+
+model CustomerDocument {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
+  documentId  String   @db.ObjectId
+  fileUrl     String
+  isVerified  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+}
+
+model Otp {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  mobile      String?
+  email       String?
+  otp         String
+  type        String
+  is_used     Boolean   @default(false)
+  expires_at  DateTime
+  created_at  DateTime  @default(now())
+  verified_at DateTime?
+
+  @@map("otps")
+}
+
+model Vehicle {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  regdNumber       String   @unique
+  ownerName        String
+  insuranceCompany String
+  insuranceNumber  String
+  chassisNumber    String
+  rcPic            String?
+  insurancePic     String?
+  providerId       String   @db.ObjectId
+  brandId          String   @db.ObjectId
+  modelId          String   @db.ObjectId
+  variantId        String?  @db.ObjectId
+  workStatus       String?
+  runKm            Int?
+  color            String?
+  mileage          Int?
+  engineCapacity   String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  provider            Provider  @relation("ProviderVehicles", fields: [providerId], references: [id], onDelete: Cascade)
+  brand               Brand     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  model               Model     @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  variant             Variant?  @relation(fields: [variantId], references: [id])
+  features            VehicleFeature[]
+  inspections         VehicleInspection[]
+  price               VehiclePrice?
+  bookings            VehicleBooking[]
+  repositories        VehicleRepository[] @relation("VehicleRepositories")
+  logs                VehicleBookingLog[] @relation("VehicleBookingLogs")
+  availabilityHistory VehicleAvailabilityHistory[] @relation("VehicleAvailabilityHistories")
+}
+
+model VehicleFeature {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  vehicleId   String   @db.ObjectId
+  featureName String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+}
+
+model VehicleInspection {
+  id                String           @id @default(auto()) @map("_id") @db.ObjectId
+  checklistOptionId String           @db.ObjectId
+  rating            Int
+  description       String?
+  vehicleId         String           @db.ObjectId
+  inspectedBy       String
+  inspectedOn       DateTime
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  vehicle           Vehicle          @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  checklistOption   ChecklistCategory @relation(fields: [checklistOptionId], references: [id])
+}
+
+model VehiclePrice {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  vehicleId      String   @unique @db.ObjectId
+  basePrice      Float
+  kmIncluded     Int
+  extraKmRate    Float
+  perHourRate    Float
+  perDayRate     Float
+  unlimitedAllow Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  vehicle        Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+}
+
+model VehicleRepository {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  vehicleId String   @db.ObjectId
+  startTime DateTime
+  endTime   DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade, name: "VehicleRepositories")
+}
+
+model VehicleAvailabilityHistory {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  vehicleId String   @db.ObjectId
+  startTime DateTime
+  endTime   DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade, name: "VehicleAvailabilityHistories")
+}
+
+model VehicleBooking {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  vehicleId     String   @db.ObjectId
+  bookingNumber String   @unique
+  startTime     DateTime
+  endTime       DateTime
+  price         Float
+  bookingStatus String
+  customerId    String   @db.ObjectId
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  vehicle       Vehicle             @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  customer      Customer            @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  bill          VehicleBookingBill?
+  logs          VehicleBookingLog[] @relation("BookingLogs")
+}
+
+model VehicleBookingBill {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  bookingId     String   @unique @db.ObjectId
+  billAmount    Float
+  extraKmPrice  Float?
+  totalPrice    Float
+  customerId    String   @db.ObjectId
+  paymentId     String?  @db.ObjectId
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  booking       VehicleBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  customer      Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  payment       BillPayment?
+}
+
+model BillPayment {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  billId         String   @unique @db.ObjectId
+  paymentMode    String
+  amount         Float
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  bill           VehicleBookingBill @relation(fields: [billId], references: [id], onDelete: Cascade)
+}
+
+model VehicleBookingLog {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  vehicleId     String   @db.ObjectId
+  bookingId     String   @db.ObjectId
+  bookingNumber String
+  startTime     DateTime
+  endTime       DateTime
+  customerId    String   @db.ObjectId
+  bookingStatus String
+  loggedTime    DateTime
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  vehicle       Vehicle        @relation(fields: [vehicleId], references: [id], onDelete: Cascade, name: "VehicleBookingLogs")
+  booking       VehicleBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade, name: "BookingLogs")
+  customer      Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+}
+
+model Brand {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String   @unique
+  logo      String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  models    Model[]
+  vehicles  Vehicle[]
+}
+
+model Model {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  brandId   String    @db.ObjectId
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  brand     Brand     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  variants  Variant[]
+  vehicles  Vehicle[]
+
+  @@unique([brandId, name])
+}
+
+model Variant {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  name            String
+  modelId         String   @db.ObjectId
+  fuelType        String?
+  transmission    String?
+  seatingCapacity Int?
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  model           Model    @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  vehicles        Vehicle[]
+
+  @@unique([modelId, name])
+}
+
+model State {
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  name      String     @unique
+  code      String     @unique
+  active    Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  cities    City[]
+  providers Provider[]
+  customers Customer[]
+}
+
+model City {
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  stateId   String     @db.ObjectId
+  pincode   String?
+  active    Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  state     State      @relation(fields: [stateId], references: [id], onDelete: Cascade)
+  providers Provider[]
+  customers Customer[]
+
+  @@unique([stateId, name])
+}
+
+model ChecklistCategory {
+  id          String           @id @default(auto()) @map("_id") @db.ObjectId
+  name        String           @unique
+  description String?
+  active      Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  items       ChecklistItem[]
+  inspections VehicleInspection[]
+}
+
+model ChecklistItem {
+  id          String            @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  categoryId  String            @db.ObjectId
+  description String?
+  checkType   String?
+  required    Boolean           @default(false)
+  active      Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  category    ChecklistCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+}
+
+model LoginHistory {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  email     String?
+  mobile    String?
+  name      String?
+  role      String?
+  loginTime DateTime @default(now())
+  ipAddress String?
+  userAgent String?
+  status    String   @default("SUCCESS")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([loginTime])
+}
+
+model Setting {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  key         String   @unique
+  value       String
+  category    String
+  description String?
+  dataType    String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

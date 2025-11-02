@@ -1,0 +1,53 @@
+{
+  "name": "car-rental-system",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "lint": "next lint",
+    "seed": "node prisma/seed.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.899.0",
+    "@aws-sdk/s3-request-presigner": "^3.899.0",
+    "@prisma/client": "^6.15.0",
+    "@types/bcryptjs": "^2.4.6",
+    "bcryptjs": "^3.0.2",
+    "chart.js": "^4.5.0",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "formidable": "^3.5.4",
+    "jose": "^6.1.0",
+    "json": "^11.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "lucide-react": "^0.544.0",
+    "next": "^15.4.6",
+    "nodemailer": "^7.0.9",
+    "primeflex": "^4.0.0",
+    "primeicons": "^7.0.0",
+    "primereact": "^10.9.7",
+    "prisma": "^6.15.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "resend": "^6.1.2"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "eslint": "^9",
+    "eslint-config-next": "15.4.6",
+    "tailwindcss": "^4"
+  },
+  "description": "A full-stack car rental management system built with Next.js, Prisma, and MongoDB.",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mohdshamsuddin/car-rental-system.git"
+  },
+  "keywords": ["nextjs", "car-rental", "prisma", "mongodb", "react"],
+  "author": "Mohd Shamsuddin",
+  "license": "MIT"
+}
